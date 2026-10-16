@@ -1,0 +1,14 @@
+# Edwin Ocampo — Portafolio Digital
+
+Edwin Ocampo builds personal software projects and digital tools.
+GitHub: https://github.com/EdwinOcampo28
+
+Featured projects:
+- Global Gold: jewelry inventory and administration; private repository.
+- Neon Arcade Pro: game hub and player progression; public related repository https://github.com/EdwinOcampo28/Juegos_Arcade_Pagina_Web
+- EDUNOVA: learning management; public repository https://github.com/EdwinOcampo28/LMS_Plataforma_Educativa
+- PRESTAMO+: loan requests, payments and reporting; repository is not represented as public.
+- International Tourism: quotes and itineraries; public repository https://github.com/EdwinOcampo28/Sistema_Turismo_Internacional_Web
+- Expense Manager: income and expense organization; Python projects https://github.com/EdwinOcampo28/TodosLosTrabajospython
+
+The portfolio uses Three.js, TypeScript, Vite and GSAP for the interactive book presentation.

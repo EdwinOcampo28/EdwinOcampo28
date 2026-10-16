@@ -1,0 +1,479 @@
+import * as THREE from "three";
+import {
+	approach,
+	cosineInterpolate,
+	vectorToRadians,
+	lerp,
+	clamp,
+} from "./util";
+
+export default class Page {
+	public textureUrls;
+	public width: number;
+	public height: number;
+	public thickness: number;
+	public rootThickness: number;
+	public elevationLeft = 0;
+	public elevationRight = 0;
+	public isCover = false;
+	public edgeColor = 0xffffff;
+
+	public mesh: THREE.Mesh;
+	public pivot: THREE.Group;
+
+	public turnProgress: number = 0;
+	public turnProgressLag: number = 0;
+	private xSegments = 1;
+	private ySegments = 1;
+	private zSegments = 20;
+	private vertexRelCoords: THREE.Vector3[] = [];
+	public bendingEnabled: boolean = true;
+	private textureLoader: THREE.TextureLoader;
+	private isFrontCover: boolean;
+	public hasTurnProgressUpdated = false;
+	private maxAnisotropy: number;
+	private isMobile: boolean;
+	private textureCache?: Map<string, THREE.Texture>;
+	private onTextureLoaded?: () => void;
+	private static readonly _v0 = new THREE.Vector2();
+	private static readonly _v1 = new THREE.Vector2();
+	private static readonly _v2 = new THREE.Vector2();
+	private static readonly _v3 = new THREE.Vector2();
+	private static readonly _dir = new THREE.Vector2();
+	private static readonly _perp = new THREE.Vector2();
+	private static readonly _posTarget = new THREE.Vector2();
+	private static readonly _tangentTarget = new THREE.Vector2();
+
+	private quadCurve = new THREE.QuadraticBezierCurve(
+		new THREE.Vector2(),
+		new THREE.Vector2(),
+		new THREE.Vector2(),
+	);
+	private cubicCurve = new THREE.CubicBezierCurve(
+		new THREE.Vector2(),
+		new THREE.Vector2(),
+		new THREE.Vector2(),
+		new THREE.Vector2(),
+	);
+	private static sharedEdgeMaterial: THREE.MeshLambertMaterial | null = null;
+
+	constructor(pageParams: PageParams) {
+		this.textureUrls = pageParams.textureUrls;
+		this.width = pageParams.width;
+		this.height = pageParams.height;
+		this.thickness = pageParams.thickness || 2;
+		this.rootThickness = pageParams.rootThickness || 4;
+		this.isCover = !!pageParams.isCover;
+		this.edgeColor = pageParams.edgeColor || 0xffffff;
+		this.isFrontCover = !!pageParams.isFrontCover;
+		this.textureLoader = pageParams.textureLoader;
+		this.maxAnisotropy = pageParams.maxAnisotropy;
+		this.isMobile = pageParams.isMobile;
+		this.textureCache = pageParams.textureCache;
+		this.onTextureLoaded = pageParams.onTextureLoaded;
+
+		if (this.isCover) {
+			this.zSegments = 1;
+		} else if (this.isMobile) {
+			// 1 segment = flat (no bending curves), renders 3× faster on mobile
+			this.zSegments = 1;
+		}
+
+		// Load front and back textures
+		const _texture = (url: string) => {
+			if (this.textureCache?.has(url)) {
+				const cached = this.textureCache.get(url)!;
+				return { map: cached, vertexColors: !this.isCover };
+			}
+			const texture = this.textureLoader.load(url, () => {
+				texture.needsUpdate = true;
+				this.onTextureLoaded?.();
+			});
+			texture.colorSpace = THREE.SRGBColorSpace;
+			if (this.isMobile) {
+				texture.generateMipmaps = false;
+				texture.minFilter = THREE.LinearFilter;
+				texture.magFilter = THREE.LinearFilter;
+				texture.anisotropy = 1;
+			} else {
+				texture.generateMipmaps = true;
+				texture.minFilter = THREE.LinearMipmapLinearFilter;
+				texture.magFilter = THREE.LinearFilter;
+				texture.anisotropy = this.maxAnisotropy;
+			}
+			if (this.textureCache) {
+				this.textureCache.set(url, texture);
+			}
+			return { map: texture, vertexColors: !this.isCover };
+		};
+		const _color = (hex: number) => ({
+			color: new THREE.Color(hex),
+		});
+
+		const textures: Record<
+			string,
+			{ map?: THREE.Texture; color?: THREE.Color }
+		> = {
+			front: _texture(this.textureUrls.front),
+			back: _texture(this.textureUrls.back),
+			edgeTop: _color(this.edgeColor),
+			edgeBottom: _color(this.edgeColor),
+			edgeLeft: _color(this.edgeColor),
+			edgeRight: _color(this.edgeColor),
+		};
+
+		if (this.textureUrls.edgeTB) {
+			textures.edgeTop = _texture(this.textureUrls.edgeTB);
+			textures.edgeBottom = _texture(this.textureUrls.edgeTB);
+		}
+		if (this.textureUrls.edgeLR) {
+			textures.edgeLeft = _texture(this.textureUrls.edgeLR);
+			textures.edgeRight = _texture(this.textureUrls.edgeLR);
+		}
+
+		const MaterialClass = this.isMobile
+			? THREE.MeshLambertMaterial
+			: THREE.MeshStandardMaterial;
+
+		let edgeTopMat: THREE.Material;
+		let edgeBottomMat: THREE.Material;
+		let edgeLeftMat: THREE.Material;
+		let edgeRightMat: THREE.Material;
+
+		if (this.isCover) {
+			edgeTopMat = new MaterialClass(textures.edgeTop);
+			edgeBottomMat = new MaterialClass(textures.edgeBottom);
+			edgeLeftMat = new MaterialClass(textures.edgeLeft);
+			edgeRightMat = new MaterialClass(textures.edgeRight);
+		} else {
+			if (!Page.sharedEdgeMaterial) {
+				Page.sharedEdgeMaterial = new THREE.MeshLambertMaterial({
+					color: this.edgeColor,
+				});
+			}
+			edgeTopMat = Page.sharedEdgeMaterial;
+			edgeBottomMat = Page.sharedEdgeMaterial;
+			edgeLeftMat = Page.sharedEdgeMaterial;
+			edgeRightMat = Page.sharedEdgeMaterial;
+		}
+
+		const materials = [
+			new MaterialClass(textures.back),
+			new MaterialClass(textures.front),
+			edgeTopMat,
+			edgeBottomMat,
+			edgeRightMat,
+			edgeLeftMat,
+		];
+
+		const geometry = new THREE.BoxGeometry(
+			this.thickness,
+			this.height,
+			this.width,
+			this.xSegments,
+			this.ySegments,
+			this.zSegments,
+		);
+
+		this.mesh = new THREE.Mesh(geometry, materials);
+		this.mesh.receiveShadow = !this.isMobile;
+		this.mesh.castShadow = !this.isMobile;
+		// this.mesh = new THREE.Mesh(
+		// 	geometry,
+		// 	new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true }),
+		// );
+
+		this.pivot = new THREE.Group();
+		this.pivot.add(this.mesh);
+
+		const position = geometry.attributes.position;
+		const uv = geometry.attributes.uv;
+
+		const colors = new Float32Array(position.count * 3);
+
+		for (let i = 0; i < position.count; i++) {
+			const coord = new THREE.Vector3(
+				position.getX(i) / this.thickness + 0.5,
+				position.getY(i) / this.height + 0.5,
+				position.getZ(i) / this.width + 0.5,
+			);
+
+			if (!this.isCover) {
+				// increase vertex density closer to the spine for better bending
+				coord.z = cosineInterpolate(0, 2, coord.z / 2);
+				uv.setXY(i, coord.x > 0.5 ? 1 - coord.z : coord.z, coord.y);
+			}
+
+			this.vertexRelCoords[i] = coord;
+
+			// apply artificial ambient occlusion using vertex colors
+			const darken = clamp((1 - coord.z) ** 4 - 0.6, 0, 1);
+			colors[i * 3] = 1 - darken; // Red channel
+			colors[i * 3 + 1] = 1 - darken; // Green channel
+			colors[i * 3 + 2] = 1 - darken; // Blue channel
+		}
+
+		// Add the colors attribute to the geometry
+		geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+		uv.needsUpdate = true;
+	}
+
+	public getCurve(): THREE.Curve<THREE.Vector2> {
+		if (this.isCover) {
+			const backShift = this.rootThickness;
+			const leftShift =
+				(this.rootThickness / 2) * (this.isFrontCover ? 1 : -1);
+			const angle = (-this.turnProgress + 1) * (Math.PI / 2);
+
+			Page._dir.set(Math.cos(angle), Math.sin(angle));
+			Page._perp.set(-Page._dir.y, Page._dir.x);
+
+			Page._v0
+				.set(0, 0)
+				.addScaledVector(Page._dir, -backShift)
+				.addScaledVector(Page._perp, leftShift);
+
+			Page._v2
+				.set(0, 0)
+				.addScaledVector(Page._dir, this.width - backShift)
+				.addScaledVector(Page._perp, leftShift);
+
+			Page._v1
+				.addVectors(Page._v0, Page._v2)
+				.multiplyScalar(0.5);
+
+			this.quadCurve.v0.copy(Page._v0);
+			this.quadCurve.v1.copy(Page._v1);
+			this.quadCurve.v2.copy(Page._v2);
+
+			return this.quadCurve;
+		} else {
+			const piProgress = Math.abs(this.turnProgress) * (Math.PI / 2);
+			const eFactorSin = Math.sin(piProgress);
+			const eFactorCos = -Math.cos(piProgress) + 1;
+
+			const isRight = this.turnProgress > 0;
+			const maxHeight = isRight
+				? this.elevationRight
+				: this.elevationLeft;
+
+			// elevation of the second control point
+			const p2baseElevation = 30;
+			const p2elev = eFactorSin * (maxHeight + p2baseElevation) * 2;
+			// elevation of the 3rd and the 4th control points
+			const p34elev = eFactorCos * maxHeight;
+
+			Page._v0.set(0, 0);
+			Page._v1.set(0, p2elev);
+			Page._v2.set(
+				Math.sin(this.turnProgress * (Math.PI / 2)) * (this.width * 0.5),
+				Math.cos(this.turnProgress * (Math.PI / 2)) * (this.width * 0.5) + p34elev,
+			);
+			Page._v3.set(
+				Math.sin(this.turnProgressLag * (Math.PI / 2)) * this.width,
+				Math.cos(this.turnProgressLag * (Math.PI / 2)) * this.width + p34elev,
+			);
+
+			this.cubicCurve.v0.copy(Page._v0);
+			this.cubicCurve.v1.copy(Page._v1);
+			this.cubicCurve.v2.copy(Page._v2);
+			this.cubicCurve.v3.copy(Page._v3);
+
+			return this.cubicCurve;
+		}
+	}
+
+	public update(dt: number) {
+		// straighten
+		let straightenTarget = this.turnProgress;
+		if (this.bendingEnabled) {
+			// gravity bend
+			straightenTarget = clamp(straightenTarget * 1.1, -1, 1);
+		}
+		this.turnProgressLag = approach(
+			this.turnProgressLag,
+			straightenTarget,
+			this.bendingEnabled ? 5 : 25,
+			dt,
+		);
+
+		const curve = this.getCurve();
+		const curveStretch = Math.max(curve.getLength() / this.width, 1);
+
+		const position = this.mesh.geometry.attributes.position;
+		for (let i = 0; i < position.count; i++) {
+			const relCoord = this.vertexRelCoords[i];
+
+			const pos = curve.getPointAt(relCoord.z * (1 / curveStretch), Page._posTarget);
+			const tangent = curve.getTangentAt(relCoord.z, Page._tangentTarget);
+			const direction = vectorToRadians(tangent) + Math.PI / 2;
+
+			const thickness = lerp(
+				this.rootThickness,
+				this.thickness,
+				relCoord.z,
+			);
+
+			const sign = -Math.sign(relCoord.x - 0.5);
+			const newX = pos.x + Math.cos(direction) * (thickness / 2) * sign;
+			const newZ = pos.y + Math.sin(direction) * (thickness / 2) * sign;
+			position.setX(i, newX);
+			position.setZ(i, newZ);
+		}
+
+		position.needsUpdate = true;
+		// On mobile, skip expensive normal/bounds recalc — Lambert material
+		// does not need per-vertex normals for correct flat-shading on phones.
+		if (!this.isMobile) {
+			this.mesh.geometry.computeVertexNormals();
+			this.mesh.geometry.computeBoundingSphere();
+		}
+
+		this.hasTurnProgressUpdated = true;
+	}
+
+	public needsUpdate() {
+		if (!this.hasTurnProgressUpdated) return true;
+		return Math.abs(this.turnProgress - this.turnProgressLag) > 0.005;
+	}
+
+	public setTurnProgress(turnProgress: number, immediate: boolean = false) {
+		if (turnProgress === this.turnProgress && !immediate) return;
+
+		if (!this.bendingEnabled || immediate) {
+			const delta = turnProgress - this.turnProgress;
+			this.turnProgressLag = immediate ? turnProgress : this.turnProgressLag + delta;
+		}
+
+		this.turnProgress = turnProgress;
+		this.hasTurnProgressUpdated = false;
+	}
+
+	/** Immediately snaps the spring physics to the target — stops the render loop. */
+	public settleImmediately(): void {
+		this.turnProgressLag = this.turnProgress;
+		this.hasTurnProgressUpdated = true;
+	}
+
+	public setElevation(elevationLeft: number, elevationRight: number) {
+		if (this.isCover) return;
+		this.elevationLeft = elevationLeft;
+		this.elevationRight = elevationRight;
+	}
+
+	public getElevation() {
+		const turnProgress = this.turnProgress + 1 / 2;
+		return lerp(this.elevationLeft, this.elevationRight, turnProgress);
+	}
+
+	public getPageAreaCorners(area: PageArea, backside = false) {
+		const top = area.top;
+		const bottom = area.top + area.height;
+		let left = area.left;
+		let right = area.left + area.width;
+		if (backside) [left, right] = [1 - left, 1 - right];
+
+		const curve = this.getCurve();
+		const curveStretch = Math.max(curve.getLength() / this.width, 1);
+		const unstretch = 1 / curveStretch;
+
+		const [lx, lz] = curve.getPointAt(left * unstretch);
+		const [rx, rz] = curve.getPointAt(right * unstretch);
+
+		const ty = (top - 0.5) * -this.height;
+		const by = (bottom - 0.5) * -this.height;
+
+		const cornerTL = new THREE.Vector3(lx, ty, lz);
+		const cornerTR = new THREE.Vector3(rx, ty, rz);
+		const cornerBL = new THREE.Vector3(lx, by, lz);
+		const cornerBR = new THREE.Vector3(rx, by, rz);
+
+		// Transform corners to global space
+		this.pivot.localToWorld(cornerTL);
+		this.pivot.localToWorld(cornerTR);
+		this.pivot.localToWorld(cornerBL);
+		this.pivot.localToWorld(cornerBR);
+
+		return [cornerTL, cornerTR, cornerBL, cornerBR];
+	}
+
+	public updateTextures(
+		front?: string | THREE.Texture,
+		back?: string | THREE.Texture,
+		onComplete?: () => void,
+	) {
+		const applyTextureSettings = (texture: THREE.Texture) => {
+			texture.colorSpace = THREE.SRGBColorSpace;
+			if (this.isMobile) {
+				texture.generateMipmaps = false;
+				texture.minFilter = THREE.LinearFilter;
+				texture.magFilter = THREE.LinearFilter;
+				texture.anisotropy = 1;
+			} else {
+				texture.generateMipmaps = true;
+				texture.minFilter = THREE.LinearMipmapLinearFilter;
+				texture.magFilter = THREE.LinearFilter;
+				texture.anisotropy = this.maxAnisotropy;
+			}
+			texture.needsUpdate = true;
+		};
+
+		if (Array.isArray(this.mesh.material)) {
+			const backMat = this.mesh.material[0] as THREE.MeshStandardMaterial;
+			const frontMat = this.mesh.material[1] as THREE.MeshStandardMaterial;
+
+			if (backMat && back) {
+				const resolvedBack =
+					typeof back === "string" && this.textureCache?.has(back)
+						? this.textureCache.get(back)!
+						: back;
+
+				if (resolvedBack instanceof THREE.Texture) {
+					applyTextureSettings(resolvedBack);
+					backMat.map = resolvedBack;
+					backMat.needsUpdate = true;
+					onComplete?.();
+					this.onTextureLoaded?.();
+				} else {
+					this.textureLoader.load(resolvedBack, (loadedTex: THREE.Texture) => {
+						applyTextureSettings(loadedTex);
+						if (this.textureCache) {
+							this.textureCache.set(resolvedBack, loadedTex);
+						}
+						backMat.map = loadedTex;
+						backMat.needsUpdate = true;
+						onComplete?.();
+						this.onTextureLoaded?.();
+					});
+				}
+			}
+
+			if (frontMat && front) {
+				const resolvedFront =
+					typeof front === "string" && this.textureCache?.has(front)
+						? this.textureCache.get(front)!
+						: front;
+
+				if (resolvedFront instanceof THREE.Texture) {
+					applyTextureSettings(resolvedFront);
+					frontMat.map = resolvedFront;
+					frontMat.needsUpdate = true;
+					onComplete?.();
+					this.onTextureLoaded?.();
+				} else {
+					this.textureLoader.load(resolvedFront, (loadedTex: THREE.Texture) => {
+						applyTextureSettings(loadedTex);
+						if (this.textureCache) {
+							this.textureCache.set(resolvedFront, loadedTex);
+						}
+						frontMat.map = loadedTex;
+						frontMat.needsUpdate = true;
+						onComplete?.();
+						this.onTextureLoaded?.();
+					});
+				}
+			}
+		}
+	}
+}

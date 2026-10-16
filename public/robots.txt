@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://edwinocampo28.github.io/PORTAFOLIO/sitemap.xml
