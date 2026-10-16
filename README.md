@@ -1,63 +1,109 @@
-# Edwin Ocampo — Portafolio Digital
+<div align="center">
 
-Portafolio personal interactivo con libro 3D, navegación adaptable y una vista optimizada para móviles. Personalizado para **Edwin Ocampo** y pensado para mostrar proyectos personales y oportunidades profesionales.
+<img src="assets/banner-edwin.svg" alt="Edwin Ocampo - Portafolio y desarrollo de software" width="100%">
 
-## Proyectos destacados
+# 👋 ¡Hola! Soy Edwin Ocampo
 
-- **Global Gold** — gestión de joyería, inventario y administración. El repositorio es privado.
-- **Neon Arcade Pro** — juegos, perfiles, progresión y clasificaciones. [Repositorio público relacionado](https://github.com/EdwinOcampo28/Juegos_Arcade_Pagina_Web).
-- **EDUNOVA** — plataforma educativa, cursos, progreso y certificados. [Repositorio público](https://github.com/EdwinOcampo28/LMS_Plataforma_Educativa).
-- **PRESTAMO+** — solicitudes, abonos, pagos y reportes. No se enlaza un repositorio privado como si fuera público.
-- **Turismo Internacional** — cotizaciones, itinerarios e historial. [Repositorio público](https://github.com/EdwinOcampo28/Sistema_Turismo_Internacional_Web).
-- **Gestor de Gastos** — organización de ingresos y gastos. [Repositorio público de trabajos Python](https://github.com/EdwinOcampo28/TodosLosTrabajospython).
+**Desarrollador de proyectos digitales · Aprendiz de programación · Creador de soluciones**
 
-Los repositorios privados se identifican como tales y no se muestran como código público. No se incluyen datos de contacto ni credenciales que no hayan sido confirmados para publicación.
+Construyo aplicaciones web y herramientas para organizar procesos, gestionar información y crear experiencias interactivas.
 
-## Tecnologías usadas por este portafolio
+<p>
+  <a href="https://github.com/EdwinOcampo28">
+    <img src="https://img.shields.io/badge/GitHub-EdwinOcampo28-111827?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
+  </a>
+  <a href="https://github.com/EdwinOcampo28?tab=repositories">
+    <img src="https://img.shields.io/badge/Repositorios-Ver%20proyectos-0d9488?style=for-the-badge&logo=github&logoColor=white" alt="Repositorios">
+  </a>
+</p>
 
-- Three.js
-- TypeScript
-- Vite
-- GSAP
-- HTML y CSS
+<a href="https://github.com/EdwinOcampo28">
+  <img src="https://img.shields.io/badge/Perfil-GitHub-14b8a6?style=flat-square&logo=github&logoColor=white" alt="Perfil de GitHub">
+</a>
+<a href="https://github.com/EdwinOcampo28?tab=repositories">
+  <img src="https://img.shields.io/badge/Explorar-Proyectos-0891b2?style=flat-square&logo=code&logoColor=white" alt="Explorar proyectos">
+</a>
 
-Estas tecnologías describen el portafolio interactivo, no necesariamente todos los proyectos mostrados.
+</div>
 
-## Ejecutar en local
+---
 
-Requisito: Node.js 18 o posterior.
+## 🧑‍💻 Sobre mí
 
-```bash
-npm install
-npm run dev
-```
+Me interesa aprender construyendo proyectos reales. He trabajado en aplicaciones de gestión, plataformas educativas, herramientas financieras, turismo y experiencias de juegos.
 
-Para generar los archivos de publicación:
+- 🧩 **Construyo:** aplicaciones y sistemas organizados por módulos.
+- 🛠️ **Me enfoco en:** mejorar la utilidad, la presentación y la facilidad de uso de cada proyecto.
+- 📚 **Aprendo practicando:** desarrollo web y programación con Python.
+- 🎯 **Mi objetivo:** seguir creciendo como desarrollador y presentar mis proyectos a oportunidades laborales y emprendimientos.
 
-```bash
-npm run build
-npm run preview
-```
+---
 
-El resultado se genera en `dist/`.
+## 🚀 Proyectos destacados
 
-## Publicar en GitHub Pages
+<table>
+  <tr>
+    <td width="50%">
+      <h3>🎮 Juegos Arcade</h3>
+      <p>Proyecto web de juegos y experiencias interactivas.</p>
+      <a href="https://github.com/EdwinOcampo28/Juegos_Arcade_Pagina_Web">Ver repositorio ↗</a>
+    </td>
+    <td width="50%">
+      <h3>✈️ Turismo Internacional</h3>
+      <p>Sistema para trabajar con cotizaciones, viajes e itinerarios.</p>
+      <a href="https://github.com/EdwinOcampo28/Sistema_Turismo_Internacional_Web">Ver repositorio ↗</a>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>🎓 Plataforma educativa</h3>
+      <p>Proyecto LMS para organizar contenido y procesos educativos.</p>
+      <a href="https://github.com/EdwinOcampo28/LMS_Plataforma_Educativa">Ver repositorio ↗</a>
+    </td>
+    <td width="50%">
+      <h3>🐍 Trabajos en Python</h3>
+      <p>Repositorio de proyectos y prácticas desarrollados con Python.</p>
+      <a href="https://github.com/EdwinOcampo28/TodosLosTrabajospython">Ver repositorio ↗</a>
+    </td>
+  </tr>
+</table>
 
-1. Crea un repositorio público llamado `PORTAFOLIO` en tu cuenta de GitHub.
-2. Sube **el contenido de esta carpeta** a la raíz del repositorio (no la carpeta contenedora adicional).
-3. Sube también la carpeta `.github/workflows/` incluida en el ZIP.
-4. Abre **Settings → Pages** y selecciona **GitHub Actions** como fuente de publicación.
-5. Cada vez que subas cambios a `main`, GitHub instalará las dependencias, compilará Vite y publicará automáticamente el contenido de `dist/`.
+### También estoy trabajando en ideas como:
 
-También puedes publicar en Netlify conectando el repositorio: comando de construcción `npm run build`, directorio de publicación `dist`.
+- 💎 **Global Gold:** gestión para un negocio de joyería.
+- 💰 **PRESTAMO+:** gestión de solicitudes, pagos y abonos.
+- 📊 **Gestor de Gastos:** organización de ingresos y gastos.
 
-## Personalización
+*Estos nombres describen proyectos que he desarrollado; no todos tienen un repositorio público disponible.*
 
-- La información de perfil y los proyectos se encuentra en `src/mobile-view.ts` e `src/i18n.ts`.
-- La navegación y las áreas interactivas del libro están en `src/main.ts`.
-- Los estilos están en `src/style.css` y `src/mobile-view.css`.
-- Las texturas del libro se encuentran en `public/img/pages/` y `public/img/pages-en/`.
+---
 
-## Contacto
+## 🧰 Tecnologías y herramientas
 
-GitHub: https://github.com/EdwinOcampo28
+<div align="center">
+
+<img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+<img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5">
+<img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3">
+<img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=111827" alt="JavaScript">
+<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
+
+</div>
+
+---
+
+## 📌 Mi portafolio
+
+Estoy preparando mi portafolio web personal para presentar mis proyectos de una forma visual y organizada.
+
+👉 **[Explorar todos mis repositorios](https://github.com/EdwinOcampo28?tab=repositories)**
+
+---
+
+<div align="center">
+
+### ¡Gracias por visitar mi perfil! ✨
+
+<sub>Aprendiendo, construyendo y mejorando proyecto a proyecto.</sub>
+
+</div>
